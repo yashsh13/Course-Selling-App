@@ -5,13 +5,16 @@ dotenv.config();
 
 const adminAuthMiddleware = async (req,res,next)=>{
 
-    const token = req.headers.token;
+    const authorization = req.headers.authorization;
 
-    const decode = await jwt.verify(token,process.env.JWT_PASS);
-
-    if(decode){
+    const jwtToken = authorization.split(" ")[1];
+    
+    const decoded = await jwt.verify(jwtToken,process.env.JWT_ADMIN_PASS);
+    
+    if(decoded){
         req.adminId = decoded.id;
         next();
+        return;
     }
 
     res.status(401).json({

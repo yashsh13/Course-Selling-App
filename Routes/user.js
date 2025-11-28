@@ -1,12 +1,15 @@
 import { Router } from "express";
-import { userModel } from "../db.js";
+import { userModel, purchasedModel, courseModel } from "../db.js";
+import userAuthMiddleware from "../Middlewares/userAuth.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+
+dotenv.config();
 
 const userRouter = Router();
 
 userRouter.post('/signup',async (req,res)=>{
-
+    
     const { email, password, firstname, lastname } = req.body;
 
     //Add zod, hash password etc
@@ -50,9 +53,25 @@ userRouter.post('/login',async (req,res)=>{
     })
 })
 
-userRouter.get('/purchased',(req,res)=>{
+userRouter.get('/purchased',userAuthMiddleware,async (req,res)=>{
+
+    const userid = req.userId;
+
+    const allPurchases = await purchasedModel.find({
+        userid:userid
+    })
+
+    const allCourseIds = allPurchases.map(function(object){
+        return object.courseid;
+    });
+
+    const courses = await courseModel.find({
+        _id:{"$in":allCourseIds}
+    });
+
     return res.json({
-        msg:"Listed all the courses you have bought"
+        msg:"Listed all the courses you have bought",
+        courses:courses
     })
 })
 

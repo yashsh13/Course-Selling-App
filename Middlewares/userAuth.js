@@ -5,17 +5,20 @@ dotenv.config();
 
 const userAuthMiddleware = async (req,res,next)=>{
 
-    const token = req.headers.token;
+    const authorization = req.headers.authorization;
 
-    const decode = await jwt.verify(token,process.env.JWT_PASS);
+    const jwtToken = authorization.split(" ")[1];
 
-    if(decode){
+    const decoded = await jwt.verify(jwtToken,process.env.JWT_USER_PASS);
+
+    if(decoded){
         req.userId = decoded.id;
         next();
+        return;
     } 
 
     res.status(401).json({
-        msg:"Authentication Failed"
+        msg:"Authentication Failed for user"
     })
 }
 
