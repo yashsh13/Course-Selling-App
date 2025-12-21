@@ -2,6 +2,8 @@ import { Router } from "express";
 import { adminModel, courseModel } from "../db.js";
 import adminAuthMiddleware from "../Middlewares/adminAuth.js";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import { z } from "zod";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -9,112 +11,220 @@ dotenv.config();
 const adminRouter = Router();
 
 adminRouter.post('/signup', async (req,res)=>{
+    try{
+        const AdminSignupSchema = z.object({
+            email: z.email(),
+            password: z.string().min(3).max(15),
+            firstname: z.string(),
+            lastname: z.string()
+        });
 
-    const { email, password, firstname, lastname} = req.body;
+        const validate = AdminSignupSchema.safeParse(req.body);
 
-    //add zod, hashing
+        if(!validate.success){
+            return res.json({
+                msg: "Zod validation error",
+                error: validate.error
+            })
+        };
 
-    await adminModel.create({
-        email:email,
-        password:password,
-        firstname:firstname,
-        lastname:lastname
-    })
+        const { email, password, firstname, lastname} = validate.data;
 
-    return res.json({
-        msg:"You have signedup as admin"
-    })
+        const hashedPassword = await bcrypt.hash(password,5);
+
+        await adminModel.create({
+            email:email,
+            password:hashedPassword,
+            firstname:firstname,
+            lastname:lastname
+        })
+
+        return res.json({
+            msg:"You have signedup as admin"
+        })
+
+    } catch (error) {
+        return res.json({
+            msg: "Admin Signup Error",
+            error: error
+        })
+    }
 })
 
 adminRouter.post('/login',async (req,res)=>{
+    try{
+        const AdminLoginSchema = z.object({
+            email: z.email(),
+            password: z.string()
+        });
 
-    const { email, password} = req.body;
+        const validate = AdminLoginSchema.safeParse(req.body);
 
-    const admin = await adminModel.findOne({
-        email:email,
-        password:password
-    })
+        if(!validate.success){
+            return res.json({
+                msg: "Zod validation error",
+                error: validate.error
+            })
+        }
 
-    if(!admin){
-        return res.status(403).json({
-            msg:"Invalid Credentials for admin"
+        const { email, password} = validate.data;
+
+        const admin = await adminModel.findOne({
+            email:email
+        })
+
+        if(!admin){
+            return res.status(403).json({
+                msg:"Admin with this email does not exist"
+            })
+        }
+
+        const verify = await bcrypt.compared(password,admin.password);
+
+        if(!verify){
+            return res.json({
+                msg: "Invalid Credentials"
+            })
+        }
+
+        const token = await jwt.sign({id:admin._id},process.env.JWT_ADMIN_PASS);
+
+        return res.json({
+            msg:"You have logged in as admin",
+            token:token
+        })
+
+    } catch (error){
+        return res.json({
+            msg: "Admin Login Error",
+            error: error
         })
     }
-
-    const token = await jwt.sign({id:admin._id},process.env.JWT_ADMIN_PASS);
-    //store token in browser 
-
-    return res.json({
-        msg:"You have logged in as admin",
-        token:token
-    })
 })
 
 adminRouter.post('/course', adminAuthMiddleware ,async (req,res)=>{
+    try{
+        const CourseInfoSchema = zod.object({
+            title: z.string().max(100),
+            description: z.string().max(1000),
+            price: z.number().lte(10000),
+            imageurl: z.url()
+        })
 
-    const { title, description, price, imageurl } = req.body;
+        const validate = CourseInfoSchema.safeParse(req.body);
 
-    const creatorid = req.adminId;
+        if(!validate){
+            return res.json({
+                msg: "Zod validation error",
+                error: validate.error
+            })
+        }
 
-    await courseModel.create({
-        title,
-        description,
-        price,
-        imageurl,
-        creatorid
-    })
+        const { title, description, price, imageurl } = validate.data;
 
+        const creatorid = req.adminId;
 
-    return res.json({
-        msg:"Created a course"
-    })
+        await courseModel.create({
+            title,
+            description,
+            price,
+            imageurl,
+            creatorid
+        })
+
+        return res.json({
+            msg:"Created a course"
+        })
+
+    } catch (error){
+        return res.json({
+            msg: "Posting course error",
+            error: error
+        })
+    }
 })
 
 adminRouter.put('/course/:courseid',adminAuthMiddleware,async (req,res)=>{
+    try{
+        const CourseInfoSchema = zod.object({
+            title: z.string().max(100),
+            description: z.string().max(1000),
+            price: z.number().lte(10000),
+            imageurl: z.url()
+        })
 
-    const courseid = req.params.courseid;
+        const validate = CourseInfoSchema.safeParse(req.body);
 
-    const { title, description, price, imageurl } = req.body;
+        if(!validate){
+            return res.json({
+                msg: "Zod validation error",
+                error: validate.error
+            })
+        }
 
-    await courseModel.updateOne({
-        _id:courseid
-    },{
-        title,
-        description,
-        price,
-        imageurl
-    })
+        const { title, description, price, imageurl } = validate.data;
+        const courseid = req.params.courseid;
 
-    return res.json({
-        msg:"updated the course"
-    })
+        await courseModel.updateOne({
+            _id:courseid
+        },{
+            title,
+            description,
+            price,
+            imageurl
+        })
+
+        return res.json({
+            msg:"updated the course"
+        })
+
+    } catch (error){
+        return res.json({
+            msg: "Updating Course Error",
+            error: error
+        })
+    }
 })
 
 adminRouter.delete('/course/:courseid',adminAuthMiddleware,async (req,res)=>{
+    try{
+        const courseid = req.params.courseid;
 
-    const courseid = req.params.courseid;
+        await courseModel.deleteOne({
+            _id:courseid
+        })
+        
+        return res.json({
+            msg:"Deleted the course"
+        })
 
-    await courseModel.deleteOne({
-        _id:courseid
-    })
-    
-    return res.json({
-        msg:"Deleted the course"
-    })
+    } catch (error){
+        return res.json({
+            msg: "Deleting course error",
+            error: error
+        })
+    }
 })
 
 adminRouter.get('/course/bulk',adminAuthMiddleware,async (req,res)=>{
+    try{
+        const adminid = req.adminId;
 
-    const adminid = req.adminId;
+        const courses = await courseModel.find({
+            creatorid:adminid
+        })
 
-    const courses = await courseModel.find({
-        creatorid:adminid
-    })
-
-    return res.json({
-        msg:"Got all your created courses",
-        courses:courses
-    })
+        return res.json({
+            msg:"Got all your created courses",
+            courses:courses
+        })
+        
+    } catch (error){
+        return res.json({
+            msg: "Getting all admin's courses error",
+            error: error
+        })
+    }
 })
 
 export default adminRouter;
