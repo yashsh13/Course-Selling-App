@@ -79,7 +79,7 @@ adminRouter.post('/login',async (req,res)=>{
             })
         }
 
-        const verify = await bcrypt.compared(password,admin.password);
+        const verify = await bcrypt.compare(password,admin.password);
 
         if(!verify){
             return res.json({
