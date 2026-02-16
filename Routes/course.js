@@ -14,7 +14,7 @@ courseRouter.get('/viewall',async (req,res)=>{
         })
 
     } catch (error){
-        return res.json({
+        return res.status(500).json({
             msg: "Fetching all available courses error",
             error: error
         })
@@ -37,7 +37,7 @@ courseRouter.post('/buy/:courseid',userAuthMiddleware,async (req,res)=>{
         })
 
     } catch (error){
-        return res.json({
+        return res.status(500).json({
             msg: "Error in buying a course",
             error: error
         })

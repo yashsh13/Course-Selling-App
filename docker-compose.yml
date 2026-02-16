@@ -1,0 +1,23 @@
+services:
+
+  mongo:
+    image: mongo:latest
+
+    ports:
+      - 27018:27017
+  
+  courseapp:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017/courseapp
+      - JWT_USER_PASS=HAHA
+      - JWT_ADMIN_PASS=HEHE
+
+    ports:
+      - 3000:3000
+
+    depends_on:
+      - mongo

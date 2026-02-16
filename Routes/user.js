@@ -43,7 +43,7 @@ userRouter.post('/signup',async (req,res)=>{
         })
 
     } catch (error) {
-        return res.json({
+        return res.status(500).json({
             msg: "User Signup error",
             error: error
         })
@@ -73,7 +73,7 @@ userRouter.post('/login',async (req,res)=>{
         })
 
         if(!user){
-            return res.status(403).json({
+            return res.status(401).json({
                 msg:"User with this email does not exist"
             })
         }
@@ -81,7 +81,7 @@ userRouter.post('/login',async (req,res)=>{
         const verify = await bcrypt.compare(password,user.password);
 
         if(!verify){
-            return res.status(403).json({
+            return res.status(401).json({
                 msg:"Invalid Credentials"
             })
         }
@@ -94,7 +94,7 @@ userRouter.post('/login',async (req,res)=>{
         })
 
     } catch (error) {
-        return res.json({
+        return res.status(500).json({
             msg:"User Login Error",
             error:error
         })
@@ -123,7 +123,7 @@ userRouter.get('/purchased',userAuthMiddleware,async (req,res)=>{
         })
 
     } catch (error) {
-        return res.json({
+        return res.status(500).json({
             msg: "Getting user purchased courses error",
             error: error
         })
