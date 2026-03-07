@@ -9,7 +9,7 @@ courseRouter.get('/viewall',async (req,res)=>{
         const courses = await courseModel.find({});
     
         return res.json({
-            msg:"Listed all the course available",
+            msg:"Listed all the courses available",
             courses:courses
         })
 
