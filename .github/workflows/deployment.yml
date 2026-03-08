@@ -27,6 +27,6 @@ jobs:
 
       - name: Deploying to a Virtual Machine
         run: |
-          echo "${{ secrets.SHH_PRIVATE_KEY }}" &> ~/ssh_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" &> ~/ssh_key
           chmod 700 /home/runner/ssh_key
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@${{ VM_IP }} -t "docker stop courseapp && docker rm $(docker ps -a -q) && docker run --name courseapp -e MONGODB_URL=${{ secrets.MONGODB_URL }} -p 3000:3000 -d yashsh13/courseapp:${{ github.sha }}"
+          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@${{ secrets.VM_IP }} -t "docker stop courseapp && docker rm $(docker ps -a -q) && docker run --name courseapp -e MONGODB_URL=${{ secrets.MONGODB_URL }} -p 3000:3000 -d yashsh13/courseapp:${{ github.sha }}"
